@@ -2,12 +2,14 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from datetime import timedelta
 from itertools import chain
+from operator import mod
 
 from django import forms
 from django.core.validators import MaxValueValidator
 from django.db.models import Q
 from django.db.models.constants import LOOKUP_SEP
 from django.forms.utils import pretty_name
+from django.utils.functional import lazy
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -29,6 +31,10 @@ from .fields import (
     TimeRangeField,
 )
 from .utils import get_model_field, label_for_filter
+
+# "%" interpolation that is evaluated when rendered, so lazy labels follow the
+# active language.
+mod_lazy = lazy(mod, str)
 
 try:
     from django.utils.choices import normalize_choices
@@ -810,7 +816,10 @@ class OrderingFilter(BaseCSVFilter, ChoiceFilter):
             for field, param in fields.items()
         ]
         descending = [
-            ("-%s" % param, labels.get("-%s" % param, self.descending_fmt % label))
+            (
+                "-%s" % param,
+                labels.get("-%s" % param, mod_lazy(self.descending_fmt, label)),
+            )
             for param, label in ascending
         ]
 

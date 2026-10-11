@@ -1723,6 +1723,22 @@ class OrderingFilterTests(TestCase):
                 ],
             )
 
+    def test_translation_label_is_lazy(self):
+        # regression test for #1556 - labels follow the active language, not
+        # the one active when the filter was built.
+        with translation.override("en"):
+            f = OrderingFilter(fields=["username"])
+
+        with translation.override("de"):
+            self.assertEqual(
+                list(f.field.choices),
+                [
+                    ("", "---------"),
+                    ("username", "Benutzername"),
+                    ("-username", "Benutzername (absteigend)"),
+                ],
+            )
+
     def test_help_text(self):
         # regression test for #756 - the usual CSV help_text is not relevant to ordering filters.
         self.assertEqual(OrderingFilter().field.help_text, "")
