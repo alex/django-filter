@@ -19,6 +19,7 @@ from django_filters.filters import (
     ChoiceFilter,
     DateFromToRangeFilter,
     DateRangeFilter,
+    DateTimeFilter,
     DateTimeFromToRangeFilter,
     DurationFilter,
     IsoDateTimeFromToRangeFilter,
@@ -28,6 +29,7 @@ from django_filters.filters import (
     MultipleChoiceFilter,
     OrderingFilter,
     RangeFilter,
+    SplitDateTimeFilter,
     TimeRangeFilter,
     TypedMultipleChoiceFilter,
 )
@@ -396,6 +398,72 @@ class DateTimeFilterTests(TestCase):
             len(f.qs), 1, "%s isn't matching %s when cleaned" % (check_dt, ten_min_ago)
         )
         self.assertQuerySetEqual(f.qs, [a2.pk], lambda o: o.pk)
+
+
+class SplitDateTimeFilterTests(TestCase):
+    class F(FilterSet):
+        published = SplitDateTimeFilter()
+
+        class Meta:
+            model = Article
+            fields = ["published"]
+
+    def setUp(self):
+        tz = timezone.get_current_timezone()
+        self.a1 = Article.objects.create(
+            published=make_aware(datetime.datetime(2025, 9, 19, 10, 0), tz)
+        )
+        self.a2 = Article.objects.create(
+            published=make_aware(datetime.datetime(2025, 9, 19, 11, 0), tz)
+        )
+
+    def test_filtering(self):
+        f = self.F({"published_0": "2025-09-19", "published_1": "10:00"})
+        self.assertTrue(f.is_valid())
+        self.assertQuerySetEqual(f.qs, [self.a1.pk], lambda o: o.pk)
+
+    @override_settings(TIME_ZONE="America/Sao_Paulo")
+    def test_timezone_matches_datetime_filter(self):
+        # Articles from setUp were created in UTC; recreate in the local zone.
+        Article.objects.all().delete()
+        tz = timezone.get_current_timezone()
+        a = Article.objects.create(
+            published=make_aware(datetime.datetime(2025, 9, 19, 10, 0), tz)
+        )
+        # 10:00 UTC on the same day, which is 07:00 local.
+        Article.objects.create(
+            published=datetime.datetime(2025, 9, 19, 10, 0, tzinfo=datetime.UTC)
+        )
+
+        f = self.F({"published_0": "2025-09-19", "published_1": "10:00"})
+        self.assertQuerySetEqual(f.qs, [a.pk], lambda o: o.pk)
+
+        class DT(FilterSet):
+            published = DateTimeFilter()
+
+            class Meta:
+                model = Article
+                fields = ["published"]
+
+        dt = DT({"published": "2025-09-19 10:00"})
+        self.assertTrue(f.is_valid() and dt.is_valid())
+        self.assertEqual(
+            f.form.cleaned_data["published"], dt.form.cleaned_data["published"]
+        )
+
+    def test_empty_input_does_not_filter(self):
+        for data in ({}, {"published_0": "", "published_1": ""}):
+            with self.subTest(data=data):
+                f = self.F(data, queryset=Article.objects.order_by("pk"))
+                self.assertTrue(f.is_valid())
+                self.assertQuerySetEqual(
+                    f.qs, [self.a1.pk, self.a2.pk], lambda o: o.pk
+                )
+
+    def test_incomplete_input_is_invalid(self):
+        f = self.F({"published_0": "2025-09-19"})
+        self.assertFalse(f.is_valid())
+        self.assertIn("published", f.errors)
 
 
 class DurationFilterTests(TestCase):

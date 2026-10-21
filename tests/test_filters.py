@@ -44,6 +44,7 @@ from django_filters.filters import (
     NumericRangeFilter,
     OrderingFilter,
     RangeFilter,
+    SplitDateTimeFilter,
     TimeFilter,
     TimeRangeFilter,
     TypedMultipleChoiceFilter,
@@ -751,6 +752,14 @@ class DateTimeFilterTests(TestCase):
         f = DateTimeFilter()
         field = f.field
         self.assertIsInstance(field, forms.DateTimeField)
+
+
+class SplitDateTimeFilterTests(TestCase):
+    def test_default_field(self):
+        f = SplitDateTimeFilter()
+        field = f.field
+        self.assertIsInstance(field, forms.SplitDateTimeField)
+        self.assertIsInstance(field.widget, forms.SplitDateTimeWidget)
 
 
 class TimeFilterTests(TestCase):

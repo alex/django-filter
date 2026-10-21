@@ -64,6 +64,7 @@ __all__ = [
     "NumericRangeFilter",
     "OrderingFilter",
     "RangeFilter",
+    "SplitDateTimeFilter",
     "TimeFilter",
     "TimeRangeFilter",
     "TypedChoiceFilter",
@@ -307,6 +308,10 @@ class IsoDateTimeFilter(DateTimeFilter):
     """
 
     field_class = IsoDateTimeField
+
+
+class SplitDateTimeFilter(Filter):
+    field_class = forms.SplitDateTimeField
 
 
 class TimeFilter(Filter):

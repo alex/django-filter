@@ -304,6 +304,24 @@ Example::
             fields = ['published']
 
 
+.. class:: SplitDateTimeFilter
+
+Uses Django's :class:`~django.forms.SplitDateTimeField` (and its default
+:class:`~django.forms.SplitDateTimeWidget`) to accept separate date and time
+inputs, submitted as ``<name>_0`` and ``<name>_1``. The combined value is made
+timezone-aware in the current time zone, in the same way as ``DateTimeFilter``.
+
+Example::
+
+    class F(FilterSet):
+        """Filter for Books by date published, using separate date and time inputs"""
+        published = SplitDateTimeFilter()
+
+        class Meta:
+            model = Book
+            fields = ['published']
+
+
 .. class:: DurationFilter
 
 Matches on a duration. Used with :class:`~django.db.models.DurationField` by default.
